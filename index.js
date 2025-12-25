@@ -9,19 +9,8 @@ import { fileURLToPath } from "url";
 
 
 // Route Imports
+import memberRouter from "./Routes/memberRouter.js";
 import userRouter from "./Routes/userRouter.js";
-import customerRouter from "./Routes/customerRouter.js";
-import membershipTransactionRouter from "./Routes/membershipTransactionRouter.js";
-import loanTransactionsRouter from "./Routes/loanTransactionsRoutes.js";
-import ledgerAccountRouter from "./Routes/ledgerAccountRoutes.js";
-import ledgerTransactionsRouter from "./Routes/ledgerTransactionsRoutes.js";
-import loanMasterRouter from "./Routes/loanMasterRoutes.js";
-import bookReferencesRouter from "./Routes/bookReferencesRoutes.js";
-import sharesTransactionRouter from "./Routes/sharesTransactionRoutes.js";
-import attendanceRecordRoute from "./Routes/attendanceRecordRoute.js";
-import importSharesProfitsRoute from "./Routes/importSharesProfitsRoute.js";
-import importCustomerRoute from "./Routes/importCustomerRoute.js";
-import backupRouter from "./Routes/backupRouter.js";
 
 
 dotenv.config();
@@ -54,31 +43,21 @@ app.use((req, res, next) => {
 });
 
 // 3️⃣ MongoDB Connection
-mongoose.connect(process.env.MONGODB_URL, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-})
-  .then(() => console.log("✅ Connected to MongoDB"))
+mongoose.connect(process.env.MONGODB_URL)
+  .then(() => {
+    console.log("✅ Connected to MongoDB");
+    console.log("📦 DB Name:", mongoose.connection.name);
+  })
   .catch((err) => {
     console.error("❌ MongoDB connection failed:", err.message);
-    process.exit(1); // exit process if DB connection fails
+    process.exit(1);
   });
 
-// 4️⃣ Routes
-app.use("/api/user", userRouter);
-app.use("/api/customer", customerRouter);
-app.use("/api/membershipTransactions", membershipTransactionRouter);
-app.use("/api/loanTransactions", loanTransactionsRouter);
-app.use("/api/ledgerAccounts", ledgerAccountRouter);
-app.use("/api/ledgerTransactions", ledgerTransactionsRouter);
-app.use("/api/loanMaster", loanMasterRouter);
-app.use("/api/bookReferences", bookReferencesRouter);
-app.use("/api/sharesTransactions", sharesTransactionRouter);
-app.use("/api/attendanceRecord", attendanceRecordRoute);
-app.use("/api/importSharesProfits", importSharesProfitsRoute);
-app.use("/api/import-customers", importCustomerRoute);
-app.use("/api/backup-now", backupRouter);
 
+// 4️⃣ Routes
+// app.use("/api/user", userRouter);
+app.use("/api/member", memberRouter);
+app.use("/api/user", userRouter);
 
 
 // 5️⃣ Health Check Route (for testing/deployment)

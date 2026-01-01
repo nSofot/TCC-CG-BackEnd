@@ -47,7 +47,7 @@ export async function getMemberById(req, res) {
   const memberId = req.params.memberId;
 
   try {
-    const member = await Member.findOne({ memberId, isDeleted: false, isActive: true });
+    const member = await Member.findOne({ memberId });
     if (!member) return res.status(404).json({ message: "Member not found or inactive" });
     res.json(member);
   } catch (err) {

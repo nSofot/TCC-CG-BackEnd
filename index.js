@@ -6,12 +6,12 @@ import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from "url";
 
-
-
 // Route Imports
 import memberRouter from "./Routes/memberRouter.js";
 import userRouter from "./Routes/userRouter.js";
-
+import bookReferencesRouter from "./Routes/bookReferencesRoutes.js";
+import ledgerTransactionsRouter from "./Routes/ledgerTransactionsRoutes.js";
+import ledgerAccountRouter from "./Routes/ledgerAccountRoutes.js";
 
 dotenv.config();
 
@@ -21,15 +21,15 @@ const __dirname = path.dirname(__filename);
 
 // 1️⃣ Middleware
 app.use(cors({
-  origin: process.env.CLIENT_URL || "*", // allow frontend
+  origin: process.env.CLIENT_URL || "*",
   credentials: true,
 }));
-app.use(express.json({ limit: "10mb" })); // prevent payload size issues
+app.use(express.json({ limit: "10mb" }));
 
 // 2️⃣ Auth Middleware
 app.use((req, res, next) => {
   const tokenString = req.header("Authorization");
-  if (!tokenString) return next(); // allow public routes
+  if (!tokenString) return next();
 
   const token = tokenString.replace("Bearer ", "").trim();
   jwt.verify(token, process.env.JWT_KEY, (err, decoded) => {
@@ -53,14 +53,14 @@ mongoose.connect(process.env.MONGODB_URL)
     process.exit(1);
   });
 
-
 // 4️⃣ Routes
-// app.use("/api/user", userRouter);
 app.use("/api/member", memberRouter);
 app.use("/api/user", userRouter);
+app.use("/api/book-reference", bookReferencesRouter);
+app.use("/api/ledger-transaction", ledgerTransactionsRouter);
+app.use("/api/ledger-account", ledgerAccountRouter);
 
-
-// 5️⃣ Health Check Route (for testing/deployment)
+// 5️⃣ Health Check
 app.get("/", (req, res) => {
   res.json({ message: "🚀 API is running", version: "1.0.0" });
 });

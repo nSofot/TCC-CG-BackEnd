@@ -1,6 +1,6 @@
 import Member from "../models/member.js";
 import OTP from "../models/otp.js";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import axios from "axios";
 import nodemailer from "nodemailer";

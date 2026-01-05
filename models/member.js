@@ -12,13 +12,7 @@ const memberSchema = new mongoose.Schema(
     memberType: {
       type: String,
       default: "ordinary",
-      enum: [
-        "ordinary",
-        "life",
-        "associate",
-        "honorary",
-        "overseas",
-      ],
+      enum: ["ordinary", "life", "associate", "honorary", "overseas"],
     },
 
     title: {
@@ -38,12 +32,13 @@ const memberSchema = new mongoose.Schema(
       trim: true,
     },
 
-    address: [String],
+    address: [{ type: String, trim: true }],
 
     mobile: {
       type: String,
       unique: true,
       sparse: true,
+      trim: true,
     },
 
     phone: String,
@@ -53,11 +48,15 @@ const memberSchema = new mongoose.Schema(
       lowercase: true,
       unique: true,
       sparse: true,
+      trim: true,
     },
 
-    image: [String],
+    image: [{ type: String }],
 
-    joinDate: Date,
+    joinDate: {
+      type: Date,
+      default: Date.now,
+    },
 
     notes: String,
 
@@ -73,9 +72,22 @@ const memberSchema = new mongoose.Schema(
         "assistant-treasurer",
         "activity-coordinator",
         "committee-member",
-        "internal-auditor"
+        "internal-auditor",
       ],
       default: "member",
+    },
+
+    invitedBy: {
+      type: String,
+      trim: true,
+    },
+
+    periodInSchoolFrom: {
+      type: Number,
+    },
+
+    periodInSchoolTo: {
+      type: Number,
     },
 
     password: {
@@ -96,16 +108,9 @@ const memberSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// // 🔹 Virtual full name
-// memberSchema.virtual("fullName").get(function () {
-//   return `${this.firstName} ${this.lastName}`;
-// });
-
-// // 🔹 Auto exclude deleted members
-// memberSchema.pre(/^find/, function (next) {
-//   this.where({ isDeleted: false });
-//   next();
-// });
+// Indexes
+// memberSchema.index({ memberId: 1 });
+// memberSchema.index({ email: 1 });
 
 const Member = mongoose.model("Member", memberSchema);
 export default Member;

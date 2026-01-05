@@ -5,6 +5,12 @@ const ledgerTransactionsSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    memberId: {
+        type: String,
+    },
+    memberName: {
+        type: String,
+    },
     trxBookNo: {
         type: String,
         unique: false
@@ -20,7 +26,6 @@ const ledgerTransactionsSchema = new mongoose.Schema({
     },
     transactionCategory: {
         type: String,
-        default: ""
     },
     accountId: {
         type: String,

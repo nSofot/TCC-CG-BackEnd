@@ -2,7 +2,7 @@ import mongoose from "mongoose";
 
 const ledgerAccountSchema = new mongoose.Schema(
     {
-        /* e.g. "1000-0001" */
+        /* e.g. "100-001" */
         accountId: { 
             type: String, 
             required: true, 

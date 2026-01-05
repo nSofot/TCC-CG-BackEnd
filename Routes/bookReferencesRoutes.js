@@ -1,15 +1,16 @@
 import express from "express";
-
 import { 
-    createBookReference,
-    getBookReferenceByBookNoAndTransactionType
-
- } from "../controllers/bookReferencesController.js";
-
-const bookReferencesRouter = express.Router();
-
-bookReferencesRouter.post("/", createBookReference);
-bookReferencesRouter.get("/trxbook/:trxBookNo/:transactionType", getBookReferenceByBookNoAndTransactionType);
+  createBookReference,
+  getBookReferenceByBookNoAndTransactionType
+} from "../controllers/bookReferencesController.js";
 
 
-export default bookReferencesRouter;
+const router = express.Router();
+
+// ✅ Create a new book reference
+router.post("/", createBookReference);
+
+// ✅ Check if a book reference exists by book number & transaction type
+router.get("/trxbook/:trxBookNo/:transactionType", getBookReferenceByBookNoAndTransactionType);
+
+export default router;

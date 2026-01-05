@@ -32,29 +32,43 @@ export async function getLedgerTransactionById(req, res) {
 
 export async function createLedgerTransaction(req, res) {             
     try {
-        const { trxId, trxBookNo, accountId, trxDate, description, transactionType, isCredit, trxAmount } = req.body;
+        let refTrx = "";
 
-        if (!trxId || !accountId || !trxDate || !description || isCredit == null || trxAmount == null) {
-            return res.status(400).json({ message: "Missing required fields" });
+        if (req.body.transactionType === "receipt") {
+            refTrx = "REC-";
+        } else if (req.body.transactionType === "voucher") {
+            refTrx = "VOU-";
+        } else if (req.body.transactionType === "transfer") {
+            refTrx = "TRF-";
+        } else {
+            return res.status(400).json({ message: "Invalid transaction type" });
         }
 
+        let newRefNo = refTrx + "000001";
+
+        // Get last record sorted by trxId descending
+        const lastRecord = await LedgerTransactions.findOne().sort({ trxId: -1 });
+
+        if (lastRecord && lastRecord.trxId) {
+            // Extract number part after "REC-"
+            const lastNo = parseInt(lastRecord.trxId.replace(refTrx, ""), 10);
+
+            // Generate next ID
+            const nextNo = lastNo + 1;
+            newRefNo = `${refTrx}${String(nextNo).padStart(6, "0")}`;
+        }
+        req.body.trxId = newRefNo;
+   
+        const { trxDate } = req.body;
         const trxDateObj = new Date(trxDate);
         if (isNaN(trxDateObj)) {
             return res.status(400).json({ message: "Invalid transaction date" });
         }
 
         const accountTransaction = new LedgerTransactions({
-            trxId,
-            trxBookNo,
-            accountId,
+            ...req.body,
             trxDate: trxDateObj,
-            transactionType,
-            description,
-            isCredit,
-            trxAmount: Number(trxAmount),
-            createdBy: req.user?.id || "system",
         });
-
 
         await accountTransaction.save();
 

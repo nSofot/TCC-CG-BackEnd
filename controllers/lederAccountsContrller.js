@@ -126,39 +126,40 @@ export async function updateLedgerAccount(req, res) {
 
 
 export async function addLederAccountBalance(req, res) {
+  const { updates } = req.body;
+  console.log("Received updates:", updates);
 
-    const { updates } = req.body;
+  if (!updates || !Array.isArray(updates)) {
+    return res.status(400).json({ message: "updates array is required" });
+  }
 
-    if (!updates || !Array.isArray(updates)) {
-        return res.status(400).json({ message: "updates array is required" });
-    }
+  try {
+    const updatePromises = updates.map(async ({ accountId, amount }) => {
 
-    try {
-        const updatePromises = updates.map(({ accountId, amount }) => {
-            if (typeof amount !== 'number') {
-                throw new Error(`Invalid amount for accountId ${accountId}`);
-            }
+    const amt = Number(amount);
+    const account = await LedgerAccounts.findOne({ accountId });
+    if (!account) throw new Error(`Ledger account not found: ${accountId}`);
+    if (isNaN(account.accountBalance)) account.accountBalance = 0;
 
-            return LedgerAccounts.updateOne(
-                { accountId },
-                {
-                    $inc: { accountBalance: Math.abs(amount) },
-                    $set: { updatedAt: new Date() },
-                }
-            );
-        });
 
-        await Promise.all(updatePromises);
+      if (!accountId || isNaN(amt)) {
+        throw new Error(`Invalid data for accountId: ${accountId}`);
+      }
 
-        res.json({ message: "Account balances added successfully" });
-    } catch (err) {
-        console.error("Bulk addition failed:", err);
-        res.status(500).json({
-            message: "Failed to add account balance",
-            error: err.message || err,
-        });
-    }
+      return LedgerAccounts.updateOne(
+        { accountId },
+        { $inc: { accountBalance: Math.abs(amt) }, $set: { updatedAt: new Date() } }
+      );
+    });
+
+    await Promise.all(updatePromises);
+    res.json({ message: "Account balances added successfully" });
+  } catch (err) {
+    console.error("Bulk addition failed:", err);
+    res.status(500).json({ message: "Failed to add account balance", error: err.message });
+  }
 }
+
 
 
 export async function subtractLedgerAccountBalance(req, res) {

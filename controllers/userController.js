@@ -40,8 +40,11 @@ export function getUserRole(req) {
 // ======================== LOGIN USER ========================
 export async function loginUsers(req, res) {
   const { loginId, password } = req.body;
+
   if (!loginId || !password) {
-    return res.status(400).json({ message: "Member ID, Mobile or Email and password are required" });
+    return res.status(400).json({
+      message: "Member ID, Mobile or Email and password are required",
+    });
   }
 
   try {
@@ -49,18 +52,25 @@ export async function loginUsers(req, res) {
       $or: [{ memberId: loginId }, { mobile: loginId }, { email: loginId }],
     }).select("+password");
 
-    if (!member) return res.status(404).json({ message: "Member not found" });
+    if (!member) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
+
+    // 🔒 VERY IMPORTANT CHECK
+    if (!member.password) {
+      return res.status(401).json({
+        message: "This account uses Google login. Please login with Google.",
+      });
+    }
 
     const valid = await bcrypt.compare(password, member.password);
-    if (!valid) return res.status(401).json({ message: "Invalid password" });
+    if (!valid) {
+      return res.status(401).json({ message: "Invalid credentials" });
+    }
 
     const token = jwt.sign(
       {
         memberId: member.memberId,
-        mobile: member.mobile,
-        email: member.email,
-        firstName: member.firstName,
-        lastName: member.lastName,
         memberRole: member.memberRole,
       },
       process.env.JWT_KEY,
@@ -71,17 +81,17 @@ export async function loginUsers(req, res) {
       message: "Login successful",
       token,
       memberId: member.memberId,
-      mobile: member.mobile,
-      email: member.email,
-      firstName: member.firstName,
-      lastName: member.lastName,
       memberRole: member.memberRole,
     });
   } catch (err) {
     console.error("Login error:", err);
-    res.status(500).json({ message: "Login failed", error: err.message });
+    res.status(500).json({
+      message: "Login failed",
+      error: err.message,
+    });
   }
 }
+
 
 // ======================== GOOGLE LOGIN ========================
 export async function loginWithGoogle(req, res) {

@@ -11,8 +11,8 @@ const memberSchema = new mongoose.Schema(
 
     memberType: {
       type: String,
-      default: "ordinary",
-      enum: ["ordinary", "life", "associate", "honorary", "overseas"],
+      default: "guest",
+      enum: ["guest", "ordinary", "life", "associate", "honorary", "overseas"],
     },
 
     title: {
@@ -36,7 +36,6 @@ const memberSchema = new mongoose.Schema(
 
     mobile: {
       type: String,
-      unique: true,
       sparse: true,
       trim: true,
     },
@@ -46,7 +45,6 @@ const memberSchema = new mongoose.Schema(
     email: {
       type: String,
       lowercase: true,
-      unique: true,
       sparse: true,
       trim: true,
     },
@@ -63,6 +61,7 @@ const memberSchema = new mongoose.Schema(
     memberRole: {
       type: String,
       enum: [
+        "guest",
         "member",
         "president",
         "secretary",
@@ -74,7 +73,7 @@ const memberSchema = new mongoose.Schema(
         "committee-member",
         "internal-auditor",
       ],
-      default: "member",
+      default: "guest",
     },
 
     invitedBy: {

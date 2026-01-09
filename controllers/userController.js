@@ -278,3 +278,110 @@ export function getUser(req, res) {
     memberRole,
   });
 }
+
+
+export async function createGoogleUser(req, res) {
+    const { accessToken, mobile, invitedBy } = req.body;
+
+    if (!accessToken || !mobile || !invitedBy) {
+        return res.status(400).json({ message: "Access token, mobile, and invitedBy are required" });
+    }
+
+    try {
+        // Get Google user info
+        const response = await axios.get(
+            "https://www.googleapis.com/oauth2/v3/userinfo",
+            { headers: { Authorization: `Bearer ${accessToken}` } }
+        );
+
+        const { email, given_name, family_name, picture } = response.data;
+
+        /* ===============================
+           CHECK EXISTING EMAIL OR MOBILE
+        ================================ */
+        const existingUser = await Member.findOne({
+            $or: [
+                { email },
+                { mobile }
+            ]
+        });
+
+        if (existingUser) {
+            if (existingUser.email === email) {
+                return res.status(409).json({ message: "Email already exists" });
+            }
+            if (existingUser.mobile === mobile) {
+                return res.status(409).json({ message: "Mobile number already exists" });
+            }
+        }
+
+        /* ===============================
+           GENERATE MEMBER ID
+        ================================ */
+        const lastMember = await Member.find({
+            memberType: "guest",
+            memberId: { $exists: true }
+        })
+            .sort({ createdAt: -1 })
+            .limit(1);
+
+        let memberId;
+        if (lastMember.length && lastMember[0].memberId) {
+            const lastNumber = parseInt(lastMember[0].memberId.replace(/\D/g, "")) || 0;
+            memberId = "T" + String(lastNumber + 1).padStart(3, "0");
+        } else {
+            memberId = "T001";
+        }
+
+        /* ===============================
+           CREATE USER
+        ================================ */
+        const hashpassword = bcrypt.hashSync(
+            process.env.JWT_KEY + "googleUser",
+            10
+        );
+
+        const user = new Member({
+            memberId,
+            mobile,
+            invitedBy,
+            email,
+            firstName: given_name,
+            lastName: family_name || given_name,
+            password: hashpassword,
+            image: picture,
+            memberRole: "guest",
+            memberType: "guest",
+            isActive: true,
+        });
+
+        await user.save();
+
+        /* ===============================
+           JWT
+        ================================ */
+        const tokenJWT = jwt.sign(
+            {
+                memberId: user.memberId,
+                mobile: user.mobile,
+                email: user.email,
+                memberRole: user.memberRole
+            },
+            process.env.JWT_KEY,
+            { expiresIn: "1d" }
+        );
+
+        res.json({
+            message: "User added successfully",
+            token: tokenJWT
+        });
+
+    } catch (err) {
+        console.error("Google user creation failed:", err);
+        res.status(500).json({
+            message: "User not added",
+            error: err.message
+        });
+    }
+}
+

@@ -7,6 +7,7 @@ import {
   updateUser,
   deleteUser,
   sendOTP,
+  createGoogleUser,
   resetPassword
 } from "../controllers/userController.js";
 
@@ -17,6 +18,7 @@ userRouter.post("/login", loginUsers);
 userRouter.post("/login-google", loginWithGoogle);
 userRouter.post("/send-OTP", sendOTP);        // fixed typo
 userRouter.post("/reset-password", resetPassword);
+userRouter.post("/create-google-user", createGoogleUser);
 
 // ======================== USER MANAGEMENT ========================
 userRouter.get("/users", getUsers);          // get all users (admin)

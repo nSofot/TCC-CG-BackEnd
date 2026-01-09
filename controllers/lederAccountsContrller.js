@@ -127,7 +127,6 @@ export async function updateLedgerAccount(req, res) {
 
 export async function addLederAccountBalance(req, res) {
   const { updates } = req.body;
-  console.log("Received updates:", updates);
 
   if (!updates || !Array.isArray(updates)) {
     return res.status(400).json({ message: "updates array is required" });

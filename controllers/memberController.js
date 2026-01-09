@@ -6,59 +6,49 @@ import { isAdmin } from "./userController.js";
 
 export async function CreateMember(req, res) {
   let memberId = "";
-
   try {
-    // Generate memberId based on type
     if (req.body.memberType === "guest") {
       const lastMember = await Member.find({ memberType: "guest" })
         .sort({ memberId: -1 })
         .limit(1);
-
-      if (lastMember.length > 0) {
-        const lastId = parseInt(lastMember[0].memberId.replace(/\D/g, ""), 10);
-        memberId = "T" + String(lastId + 1).padStart(3, "0");
-      } else {
-        memberId = "T001";
-      }
+      memberId = lastMember.length
+        ? "T" + String(parseInt(lastMember[0].memberId.replace(/\D/g, "")) + 1).padStart(3, "0")
+        : "T001";
     } else {
       const lastMember = await Member.find({ memberType: { $ne: "guest" } })
         .sort({ memberId: -1 })
         .limit(1);
-
-      if (lastMember.length > 0) {
-        const lastId = parseInt(lastMember[0].memberId, 10);
-        memberId = String(lastId + 1).padStart(4, "0");
-      } else {
-        memberId = "0001";
-      }
+      memberId = lastMember.length    
+        ? String(parseInt(lastMember[0].memberId) + 1).padStart(4, "0")
+        : "0001";
     }
   } catch (err) {
-    return res.status(500).json({
-      message: "Failed to generate memberId",
-      error: err.message,
+    return res.status(500).json({ message: "Failed to generate memberId", error: err.message });
+  }
+
+  const { firstName, lastName, mobile } = req.body;
+
+  if (!firstName || !lastName || !mobile) {
+    return res.status(400).json({
+      message: "First name, last name, and mobile are required",
     });
   }
 
-  // ✅ Validate required fields
-  const { firstName, lastName, mobile, password } = req.body;
-  if (!firstName || !lastName || !mobile) {
-    return res.status(400).json({ message: "First name, last name, and mobile are required" });
-  }
+  // remove empty strings
+  Object.keys(req.body).forEach(key => {
+    if (req.body[key] === "") delete req.body[key];
+  });
 
-  if (!password) {
-    return res.status(400).json({ message: "Password is required" });
-  }
+  // auto password
+  const rawPassword = req.body.password || mobile;
 
-  // ✅ Hash the password
   try {
-    req.body.password = await bcrypt.hash(password, 12);
+    req.body.password = await bcrypt.hash(rawPassword, 12);
   } catch (err) {
     return res.status(500).json({ message: "Failed to hash password", error: err.message });
   }
 
   req.body.memberId = memberId;
-  req.body.createdAt = new Date();
-
   try {
     const member = new Member(req.body);
     await member.save();
@@ -69,17 +59,19 @@ export async function CreateMember(req, res) {
     });
   } catch (error) {
     console.error("Error saving member:", error);
-    // Handle duplicate mobile/email error specifically
+
     if (error.code === 11000) {
       const field = Object.keys(error.keyPattern)[0];
       return res.status(400).json({ message: `${field} already exists` });
     }
+
     res.status(500).json({
       message: "Member not added",
       error: error.message,
     });
   }
 }
+
 
 
 // ======================== GET ALL MEMBERS ========================
@@ -107,11 +99,11 @@ export async function getMemberById(req, res) {
 
 // ======================== DELETE MEMBER (Soft Delete) ========================
 export async function deleteMember(req, res) {
-  if (!isAdmin(req)) return res.status(403).json({ message: "You are not authorized to delete member" });
+  // if (!isAdmin(req)) return res.status(403).json({ message: "You are not authorized to delete member" });
 
   try {
-    const result = await Member.updateOne({ memberId: req.params.memberId }, { isDeleted: true });
-
+    // const result = await Member.updateOne({ memberId: req.params.memberId }, { isDeleted: true });
+    const result = await Member.deleteOne({ memberId: req.params.memberId });
     if (result.matchedCount === 0) return res.status(404).json({ message: "Member not found" });
 
     res.json({ message: "Member deleted successfully" });

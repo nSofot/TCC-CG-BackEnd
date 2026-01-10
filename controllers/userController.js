@@ -157,60 +157,98 @@ const transport = nodemailer.createTransport({
   port: 587,
   secure: false,
   auth: {
-    user: process.env.EMAIL_USER,
+    user: process.env.VITE_EMAILL,
     pass: process.env.EMAIL_PASS,
   },
 });
 
 // ======================== SEND OTP ========================
 export async function sendOTP(req, res) {
-  const { email, memberId, mobile } = req.body;
-  if (!email) return res.status(400).json({ message: "Email is required" });
-
   try {
-    await OTP.deleteMany({ email });
-    const randomOTP = Math.floor(100000 + Math.random() * 900000);
-    const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes expiry
+    const { email, memberId, mobile } = req.body;
 
-    await new OTP({ email, otp: randomOTP, expiresAt }).save();
+    if (!email || !memberId || !mobile) {
+      return res.status(400).json({ message: "Email, Member ID and Mobile are required" });
+    }
+
+    const member = await Member.findOne({ email, memberId, mobile });
+    if (!member) {
+      return res.status(404).json({
+        message: "Member not found or details do not match"
+      });
+    }
+
+    await OTP.deleteMany({ email, memberId });
+
+    const randomOTP = Math.floor(100000 + Math.random() * 900000);
+    const expiresAt = Date.now() + 10 * 60 * 1000;
+
+    await OTP.create({
+      email,
+      memberId,
+      otp: randomOTP,
+      expiresAt,
+    });
 
     await transport.sendMail({
       from: process.env.EMAIL_USER,
       to: email,
       subject: "Reset Password - TCC Colombo Group",
-      text: `Your password reset OTP is: ${randomOTP}. This OTP will expire in 10 minutes.
-            Mobile number: ${mobile}
-            Member ID: ${memberId}`,
+      text: `Your OTP is ${randomOTP}. It expires in 10 minutes.`,
     });
 
     res.json({ message: "OTP sent successfully" });
+
   } catch (err) {
-    res.status(500).json({ message: "Failed to send OTP", error: err.message });
+    console.error("Send OTP Error:", err);
+    res.status(500).json({
+      message: "Failed to send OTP",
+      error: err.message,
+    });
   }
 }
+
+
 
 // ======================== RESET PASSWORD ========================
 export async function resetPassword(req, res) {
-  const { email, memberId, otp, newPassword } = req.body;
-
   try {
+    let { email, memberId, otp, newPassword } = req.body;
+
+    email = email.toLowerCase().trim();
+
     const otpDoc = await OTP.findOne({ email });
-    if (!otpDoc) return res.status(404).json({ message: "OTP expired or not found" });
+    if (!otpDoc) {
+      return res.status(403).json({ message: "OTP not found" });
+    }
 
-    if (Date.now() > otpDoc.expiresAt) return res.status(403).json({ message: "OTP expired" });
+    if (Date.now() > otpDoc.expiresAt) {
+      return res.status(403).json({ message: "OTP expired" });
+    }
 
-    if (String(otp) !== String(otpDoc.otp)) return res.status(403).json({ message: "Invalid OTP" });
+    if (String(otp) !== String(otpDoc.otp)) {
+      return res.status(403).json({ message: "Invalid OTP" });
+    }
 
-    await OTP.deleteMany({ email });
+    const member = await Member.findOne({ email, memberId });
+    if (!member) {
+      return res.status(404).json({ message: "Member not found" });
+    }
 
-    const hashedPassword = await bcrypt.hash(newPassword, 12);
-    await Member.updateOne({ memberId }, { password: hashedPassword });
+    member.password = await bcrypt.hash(newPassword, 12);
+    await member.save();
 
-    res.json({ message: "Password has been reset successfully" });
+    await OTP.deleteMany({ email, memberId });
+
+    res.json({ message: "Password reset successful" });
+
   } catch (err) {
-    res.status(500).json({ message: "Failed to reset password", error: err.message });
+    console.error("Reset error:", err);
+    res.status(500).json({ message: "Reset failed" });
   }
 }
+
+
 
 // ======================== DELETE USER (Soft Delete) ========================
 export async function deleteUser(req, res) {

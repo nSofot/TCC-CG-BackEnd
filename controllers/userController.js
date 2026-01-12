@@ -165,36 +165,90 @@ const transport = nodemailer.createTransport({
 // ======================== SEND OTP ========================
 export async function sendOTP(req, res) {
   try {
-    const { email, memberId, mobile } = req.body;
+    const { email, mobile } = req.body;
 
-    if (!email || !memberId || !mobile) {
-      return res.status(400).json({ message: "Email, Member ID and Mobile are required" });
+    if (!email || !mobile) {
+      return res.status(400).json({ message: "Email and Mobile are required" });
     }
 
-    const member = await Member.findOne({ email, memberId, mobile });
+    const member = await Member.findOne({ email, mobile });
     if (!member) {
       return res.status(404).json({
         message: "Member not found or details do not match"
       });
     }
 
-    await OTP.deleteMany({ email, memberId });
+    await OTP.deleteMany({ email, mobile });
 
     const randomOTP = Math.floor(100000 + Math.random() * 900000);
     const expiresAt = Date.now() + 10 * 60 * 1000;
 
     await OTP.create({
       email,
-      memberId,
+      mobile,
       otp: randomOTP,
       expiresAt,
     });
 
+    // await transport.sendMail({
+    //   from: `"TCC Colombo Group" <${process.env.EMAIL_USER}>`,
+    //   to: email,
+    //   subject: "Reset User Password - TCC Colombo Group",
+    //   text: `Your OTP is ${randomOTP}. It expires in 10 minutes.`,
+    // });
     await transport.sendMail({
-      from: process.env.EMAIL_USER,
+      from: `"TCC Colombo Group" <${process.env.EMAIL_USER}>`,
       to: email,
-      subject: "Reset Password - TCC Colombo Group",
+      subject: "Reset Your Password – TCC Colombo Group",
       text: `Your OTP is ${randomOTP}. It expires in 10 minutes.`,
+      html: `
+        <div style="font-family: Arial, sans-serif; background:#f5f6fa; padding:24px;">
+          <div style="max-width:520px; margin:auto; background:#ffffff; border-radius:8px; padding:24px;">
+            
+            <h2 style="color:#6b21a8; margin-bottom:8px;">
+              Password Reset Request
+            </h2>
+
+            <p style="color:#333; font-size:14px;">
+              We received a request to reset your password for your
+              <strong>TCC Colombo Group</strong> account.
+            </p>
+
+            <p style="color:#333; font-size:14px;">
+              Please use the OTP below to continue:
+            </p>
+
+            <div style="
+              background:#f3e8ff;
+              color:#6b21a8;
+              font-size:24px;
+              font-weight:bold;
+              letter-spacing:4px;
+              text-align:center;
+              padding:16px;
+              border-radius:6px;
+              margin:20px 0;
+            ">
+              ${randomOTP}
+            </div>
+
+            <p style="color:#555; font-size:13px;">
+              ⏱ This OTP will expire in <strong>10 minutes</strong>.
+            </p>
+
+            <p style="color:#777; font-size:13px;">
+              If you did not request a password reset, please ignore this email.
+            </p>
+
+            <hr style="border:none; border-top:1px solid #eee; margin:20px 0;" />
+
+            <p style="font-size:12px; color:#999; text-align:center;">
+              © 2025 TCC Colombo Group<br/>
+              Powered by nSoft Technologies
+            </p>
+          </div>
+        </div>
+      `,
     });
 
     res.json({ message: "OTP sent successfully" });
@@ -213,11 +267,12 @@ export async function sendOTP(req, res) {
 // ======================== RESET PASSWORD ========================
 export async function resetPassword(req, res) {
   try {
-    let { email, memberId, otp, newPassword } = req.body;
+    let { email, mobile, otp, newPassword } = req.body;
 
     email = email.toLowerCase().trim();
+    mobile = mobile.trim();
 
-    const otpDoc = await OTP.findOne({ email });
+    const otpDoc = await OTP.findOne({ email, mobile });
     if (!otpDoc) {
       return res.status(403).json({ message: "OTP not found" });
     }
@@ -230,7 +285,7 @@ export async function resetPassword(req, res) {
       return res.status(403).json({ message: "Invalid OTP" });
     }
 
-    const member = await Member.findOne({ email, memberId });
+    const member = await Member.findOne({ email, mobile });
     if (!member) {
       return res.status(404).json({ message: "Member not found" });
     }
@@ -238,7 +293,7 @@ export async function resetPassword(req, res) {
     member.password = await bcrypt.hash(newPassword, 12);
     await member.save();
 
-    await OTP.deleteMany({ email, memberId });
+    await OTP.deleteMany({ email, mobile });
 
     res.json({ message: "Password reset successful" });
 

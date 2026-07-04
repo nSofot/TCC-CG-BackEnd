@@ -94,32 +94,98 @@ export async function loginUsers(req, res) {
 
 
 // ======================== GOOGLE LOGIN ========================
+// export async function loginWithGoogle(req, res) {
+//   const { accessToken } = req.body;
+//   if (!accessToken) {
+//     return res.status(400).json({ message: "Access token is required" });
+//   }
+
+//   try {
+//     const response = await axios.get(
+//       "https://www.googleapis.com/oauth2/v3/userinfo",
+//       { headers: { Authorization: `Bearer ${accessToken}` } }
+//     );
+
+//     const email = response.data.email?.toLowerCase().trim();
+//     if (!email) {
+//       return res.status(400).json({ message: "Invalid Google user info" });
+//     }
+
+//     const member = await Member.findOne({
+//       email,
+//       isDeleted: { $ne: true }
+//     });
+
+//     if (!member) {
+//       return res.status(404).json({ message: "User not found in the database" });
+//     }
+
+//     const token = jwt.sign(
+//       {
+//         memberId: member.memberId,
+//         mobile: member.mobile,
+//         email: member.email,
+//         firstName: member.firstName,
+//         lastName: member.lastName,
+//         memberRole: member.memberRole,
+//       },
+//       process.env.JWT_KEY,
+//       { expiresIn: "1d" }
+//     );
+
+//     res.json({
+//       message: "Login successful",
+//       token,
+//       memberId: member.memberId,
+//       mobile: member.mobile,
+//       email: member.email,
+//       firstName: member.firstName,
+//       lastName: member.lastName,
+//       memberRole: member.memberRole,
+//     });
+
+//   } catch (err) {
+//     console.error("Google login failed:", err);
+//     res.status(500).json({ message: "Google login failed" });
+//   }
+// }
 export async function loginWithGoogle(req, res) {
   const { accessToken } = req.body;
+
   if (!accessToken) {
     return res.status(400).json({ message: "Access token is required" });
   }
 
   try {
+    // 🔹 GET USER INFO FROM GOOGLE
     const response = await axios.get(
       "https://www.googleapis.com/oauth2/v3/userinfo",
-      { headers: { Authorization: `Bearer ${accessToken}` } }
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
     );
 
     const email = response.data.email?.toLowerCase().trim();
+
     if (!email) {
       return res.status(400).json({ message: "Invalid Google user info" });
     }
 
+    // 🔹 FIND MEMBER IN YOUR DATABASE
     const member = await Member.findOne({
       email,
-      isDeleted: { $ne: true }
+      isDeleted: { $ne: true },
     });
 
     if (!member) {
-      return res.status(404).json({ message: "User not found in the database" });
+      return res.status(404).json({
+        message: "User not found in the database",
+      });
     }
 
+    // 🔥 CREATE YOUR SYSTEM JWT (ERP LOGIN)
     const token = jwt.sign(
       {
         memberId: member.memberId,
@@ -133,20 +199,45 @@ export async function loginWithGoogle(req, res) {
       { expiresIn: "1d" }
     );
 
+    // ✅ OPTIONAL: VERIFY DRIVE ACCESS (GOOD PRACTICE)
+    try {
+      await axios.get("https://www.googleapis.com/drive/v3/about", {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+        params: {
+          fields: "user",
+        },
+      });
+    } catch (driveErr) {
+      console.warn("Drive permission not granted");
+    }
+
+    // 🔥 FINAL RESPONSE
     res.json({
       message: "Login successful",
+
+      // ERP TOKEN
       token,
+
+      // USER DATA
       memberId: member.memberId,
       mobile: member.mobile,
       email: member.email,
       firstName: member.firstName,
       lastName: member.lastName,
       memberRole: member.memberRole,
+
+      // 🔥 IMPORTANT: SEND GOOGLE TOKEN BACK
+      googleAccessToken: accessToken,
     });
 
   } catch (err) {
-    console.error("Google login failed:", err);
-    res.status(500).json({ message: "Google login failed" });
+    console.error("Google login failed:", err?.response?.data || err.message);
+
+    res.status(500).json({
+      message: "Google login failed",
+    });
   }
 }
 

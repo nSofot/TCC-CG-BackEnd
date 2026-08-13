@@ -99,6 +99,12 @@ const memberSchema = new mongoose.Schema(
       default: false,
     },
 
+    googleId: {
+        type: String,
+        unique: true,
+        sparse: true
+    },    
+
     isActive: {
       type: Boolean,
       default: true,

@@ -12,12 +12,15 @@ import userRouter from "./Routes/userRouter.js";
 import bookReferencesRouter from "./Routes/bookReferencesRoutes.js";
 import ledgerTransactionsRouter from "./Routes/ledgerTransactionsRoutes.js";
 import ledgerAccountRouter from "./Routes/ledgerAccountRoutes.js";
+import ticketOrderRouter from "./Routes/ticketOrderRoutes.js";
+import fs from "fs";
 
 dotenv.config();
 
 const app = express();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+fs.mkdirSync(path.join(__dirname, "uploads", "ticket-slips"), { recursive: true });
 
 // 1️⃣ Middleware
 app.use(cors({
@@ -59,6 +62,7 @@ app.use("/api/user", userRouter);
 app.use("/api/book-reference", bookReferencesRouter);
 app.use("/api/ledger-transaction", ledgerTransactionsRouter);
 app.use("/api/ledger-account", ledgerAccountRouter);
+app.use("/api/ticket-orders", ticketOrderRouter);
 
 // 5️⃣ Health Check
 app.get("/", (req, res) => {

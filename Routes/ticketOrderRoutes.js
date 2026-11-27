@@ -6,6 +6,7 @@ import { fileURLToPath } from "url";
 import {
   createTicketOrder,
   getTicketOrders,
+  getTicketAvailability,
   getPaymentSlip,
   updateTicketOrderStatus,
 } from "../controllers/ticketOrderController.js";
@@ -27,6 +28,7 @@ const upload = multer({
 });
 
 router.get("/", getTicketOrders);
+router.get("/availability", getTicketAvailability);
 router.get("/:orderId/payment-slip", getPaymentSlip);
 router.patch("/:orderId/status", updateTicketOrderStatus);
 router.post("/", (req, res, next) => upload.single("paymentSlip")(req, res, (error) => {

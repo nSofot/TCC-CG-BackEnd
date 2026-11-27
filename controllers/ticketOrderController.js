@@ -52,13 +52,26 @@ export async function createTicketOrder(req, res) {
   }
 
   try {
-    const year = new Date().getFullYear();
+    const now = new Date();
+
+    const datePart = [
+      String(now.getFullYear()).slice(-2),
+      String(now.getMonth() + 1).padStart(2, "0"),
+      String(now.getDate()).padStart(2, "0"),
+    ].join("");
+
     const counter = await TicketCounter.findOneAndUpdate(
-      { year },
+      { date: datePart },
       { $inc: { sequence: 1 } },
-      { new: true, upsert: true, setDefaultsOnInsert: true }
+      {
+        new: true,
+        upsert: true,
+        setDefaultsOnInsert: true,
+      }
     );
-    const referenceNumber = `TCC-${year}-${String(counter.sequence).padStart(6, "0")}`;
+
+    const referenceNumber = `CG-${datePart}${String(counter.sequence).padStart(4, "0")}`;
+
     const order = await TicketOrder.create({
       referenceNumber, eventName, firstName, lastName, mobileNumber, emailAddress: recipientEmail, nicNumber, address,
       paidAmount: amount,
@@ -108,6 +121,17 @@ export async function getTicketOrders(req, res) {
   } catch (error) {
     console.error("Ticket order lookup failed:", error);
     return res.status(500).json({ message: "Could not load ticket orders." });
+  }
+}
+
+// Public endpoint exposes only aggregate availability, never order details.
+export async function getTicketAvailability(_req, res) {
+  try {
+    const sold = await TicketOrder.countDocuments({ status: { $ne: "rejected" } });
+    return res.json({ sold });
+  } catch (error) {
+    console.error("Ticket availability lookup failed:", error);
+    return res.status(500).json({ message: "Could not load ticket availability." });
   }
 }
 

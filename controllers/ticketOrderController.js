@@ -10,7 +10,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const slipDirectory = path.resolve(__dirname, "../uploads/ticket-slips");
 dotenv.config();
 
-const ticketReviewRoles = ["admin", "treasurer"];
+const ticketReviewRoles = ["admin", "president", "treasurer"];
 const mailTransport = nodemailer.createTransport({
   service: "gmail",
   host: "smtp.gmail.com",

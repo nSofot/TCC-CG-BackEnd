@@ -22,8 +22,8 @@ const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (_req, file, callback) => {
-    const allowed = ["image/jpeg", "image/png", "image/webp", "application/pdf"];
-    callback(allowed.includes(file.mimetype) ? null : new Error("Upload a JPG, PNG, WebP image, or PDF."), allowed.includes(file.mimetype));
+    const allowed = ["image/jpeg", "image/png", "image/webp"];
+    callback(allowed.includes(file.mimetype) ? null : new Error("Upload a JPG, PNG, or WebP image."), allowed.includes(file.mimetype));
   },
 });
 
